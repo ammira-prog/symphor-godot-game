@@ -1,36 +1,56 @@
 extends Area2D
 
+# One obstacle. It is either anchored to the floor (Y = 1280) and grows
+# upward, or anchored to the ceiling (Y = 0) and grows downward.
+# main.gd decides where it goes and how tall it is.
 
-# Called when the node enters the scene tree for the first time.
+const FLOOR_Y := 1280.0
+const CEILING_Y := 0.0
+
+@export var obstacle_width: float = 90.0
+
+var active := true
+
+@onready var polygon: Polygon2D = $Polygon2D
+@onready var collision_shape: CollisionShape2D = $CollisionShape2D
+
+
 func _ready() -> void:
-	pass # Replace with function body.
+	# Give every obstacle its own shape so resizing one never changes another.
+	collision_shape.shape = RectangleShape2D.new()
 
-@export var respawn_x: float = 770.0
-var score = 0
-var heights = [400,520,450,600]
-var height_index = 0
 
-@onready var polygon = $Polygon2D
-@onready var collision_shape =$CollisionShape2D
-func change_obstacle_height(height: float) -> void:
-	polygon.polygon = PackedVector2Array([
-		Vector2(-25,75 - height),
-		Vector2(25,75 - height),
-		Vector2(25,75),
-		Vector2(-25,75)
-	])
-	var rectangle_shape = collision_shape.shape as RectangleShape2D
-	rectangle_shape.size = Vector2( 50, height)
-	collision_shape.position.y = 75 - height /2
-func _process(delta: float) -> void:
-	if get_parent().get_node("CanvasLayer/Control").visible:
-		return
-	position.x -=100 * delta
-	
-	if position.x < -50:
-		position.x = respawn_x
-		get_parent().increase_score()
-		height_index = (height_index + 1) % heights.size()
-		change_obstacle_height(heights[height_index])
-func _on_obstacle_body_entered(body: Node2D) -> void:
-	body.game_over = true
+func configure(from_ceiling: bool, height: float) -> void:
+	var half := obstacle_width / 2.0
+	var rect := collision_shape.shape as RectangleShape2D
+	rect.size = Vector2(obstacle_width, height)
+	if from_ceiling:
+		position.y = CEILING_Y
+		polygon.polygon = PackedVector2Array([
+			Vector2(-half, 0.0),
+			Vector2(half, 0.0),
+			Vector2(half, height),
+			Vector2(-half, height)
+		])
+		collision_shape.position = Vector2(0.0, height / 2.0)
+	else:
+		position.y = FLOOR_Y
+		polygon.polygon = PackedVector2Array([
+			Vector2(-half, -height),
+			Vector2(half, -height),
+			Vector2(half, 0.0),
+			Vector2(-half, 0.0)
+		])
+		collision_shape.position = Vector2(0.0, -height / 2.0)
+
+
+func activate() -> void:
+	active = true
+	show()
+	set_deferred("monitoring", true)
+
+
+func deactivate() -> void:
+	active = false
+	hide()
+	set_deferred("monitoring", false)

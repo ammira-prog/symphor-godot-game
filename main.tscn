@@ -5,52 +5,13 @@
 [ext_resource type="Script" uid="uid://bhqh3snrochxu" path="res://obstacle.gd" id="2_0xm2m"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_5yir0"]
-radius = 20.0
+radius = 26.0
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_5yir0"]
 size = Vector2(50, 150)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_h2yge"]
 size = Vector2(50, 150)
-
-[sub_resource type="GDScript" id="GDScript_h2yge"]
-script/source = "extends Area2D
-
-
-# Called when the node enters the scene tree for the first time.
-func _ready() -> void:
-	pass # Replace with function body.
-
-@export var respawn_x: float = 770.0
-var score = 0
-var heights = [150,110,190,130]
-var height_index = 0
-
-@onready var polygon = $Polygon2D
-@onready var collision_shape =$CollisionShape2D
-func change_obstacle_height(height: float) -> void:
-	polygon.polygon = PackedVector2Array([
-		Vector2(-25,-75),
-		Vector2(25,-75),
-		Vector2(25, height -75),
-		Vector2(-25,height -75)
-	])
-	var rectangle_shape = collision_shape.shape as RectangleShape2D
-	rectangle_shape.size = Vector2( 50, height)
-	collision_shape.position.y = 75 - height /2 - 75
-func _process(delta: float) -> void:
-	if get_parent().get_node(\"CanvasLayer/Control\").visible:
-		return
-	position.x -=100 * delta
-	
-	if position.x < -50:
-		position.x = respawn_x
-		get_parent().increase_score()
-		height_index = (height_index + 1) % heights.size()
-		change_obstacle_height(heights[height_index])
-func _on_obstacle_body_entered(body: Node2D) -> void:
-	body.game_over = true
-"
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5yir0"]
 bg_color = Color(0.8627451, 0.38431373, 0.40784314, 1)
@@ -87,7 +48,7 @@ shape = SubResource("CircleShape2D_5yir0")
 
 [node name="Polygon2D" type="Polygon2D" parent="Player" unique_id=2137022426]
 color = Color(0.5284178, 0.05687391, 0.42833737, 1)
-polygon = PackedVector2Array(0, -25, 25, 0, 0, 25, -25, 0)
+polygon = PackedVector2Array(0, -40, 40, 0, 0, 40, -40, 0)
 uv = PackedVector2Array(237.9997, -20)
 
 [node name="Obstacle" type="Area2D" parent="." unique_id=1460911528]
@@ -104,7 +65,6 @@ polygon = PackedVector2Array(-25, -75, 25, -75, 25, 75, -25, 75)
 [node name="Obstacle2" type="Area2D" parent="." unique_id=1515890787]
 position = Vector2(850, 1205)
 script = ExtResource("2_0xm2m")
-respawn_x = 1100.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Obstacle2" unique_id=433745386]
 shape = SubResource("RectangleShape2D_h2yge")
@@ -115,8 +75,7 @@ polygon = PackedVector2Array(-25, -75, 25, -75, 25, 75, -25, 75)
 
 [node name="OverheadObstacle" type="Area2D" parent="." unique_id=980610999]
 position = Vector2(850, 75)
-script = SubResource("GDScript_h2yge")
-respawn_x = 1100.0
+script = ExtResource("2_0xm2m")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="OverheadObstacle" unique_id=1420561830]
 shape = SubResource("RectangleShape2D_h2yge")
