@@ -1,0 +1,194 @@
+[gd_scene format=3 uid="uid://bs60nmvqd7ot5"]
+
+[ext_resource type="Script" uid="uid://djgimmty6a8wb" path="res://main.gd" id="1_h2yge"]
+[ext_resource type="Script" uid="uid://bwgtj2ka1acph" path="res://player.gd" id="1_ig7tw"]
+[ext_resource type="Script" uid="uid://bhqh3snrochxu" path="res://obstacle.gd" id="2_0xm2m"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_5yir0"]
+radius = 20.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_5yir0"]
+size = Vector2(50, 150)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_h2yge"]
+size = Vector2(50, 150)
+
+[sub_resource type="GDScript" id="GDScript_h2yge"]
+script/source = "extends Area2D
+
+
+# Called when the node enters the scene tree for the first time.
+func _ready() -> void:
+	pass # Replace with function body.
+
+@export var respawn_x: float = 770.0
+var score = 0
+var heights = [150,110,190,130]
+var height_index = 0
+
+@onready var polygon = $Polygon2D
+@onready var collision_shape =$CollisionShape2D
+func change_obstacle_height(height: float) -> void:
+	polygon.polygon = PackedVector2Array([
+		Vector2(-25,-75),
+		Vector2(25,-75),
+		Vector2(25, height -75),
+		Vector2(-25,height -75)
+	])
+	var rectangle_shape = collision_shape.shape as RectangleShape2D
+	rectangle_shape.size = Vector2( 50, height)
+	collision_shape.position.y = 75 - height /2 - 75
+func _process(delta: float) -> void:
+	if get_parent().get_node(\"CanvasLayer/Control\").visible:
+		return
+	position.x -=100 * delta
+	
+	if position.x < -50:
+		position.x = respawn_x
+		get_parent().increase_score()
+		height_index = (height_index + 1) % heights.size()
+		change_obstacle_height(heights[height_index])
+func _on_obstacle_body_entered(body: Node2D) -> void:
+	body.game_over = true
+"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5yir0"]
+bg_color = Color(0.8627451, 0.38431373, 0.40784314, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_x1ka8"]
+bg_color = Color(0.7254902, 0.2784314, 0.3137255, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vit7h"]
+bg_color = Color(0.91764706, 0.52156866, 0.5372549, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[node name="Main" type="Node2D" unique_id=1621626876]
+script = ExtResource("1_h2yge")
+
+[node name="Player" type="CharacterBody2D" parent="." unique_id=80247631]
+position = Vector2(150, 640)
+script = ExtResource("1_ig7tw")
+
+[node name="Sprite2D" type="Sprite2D" parent="Player" unique_id=716639641]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player" unique_id=1469021892]
+shape = SubResource("CircleShape2D_5yir0")
+
+[node name="Polygon2D" type="Polygon2D" parent="Player" unique_id=2137022426]
+color = Color(0.5284178, 0.05687391, 0.42833737, 1)
+polygon = PackedVector2Array(0, -25, 25, 0, 0, 25, -25, 0)
+uv = PackedVector2Array(237.9997, -20)
+
+[node name="Obstacle" type="Area2D" parent="." unique_id=1460911528]
+position = Vector2(300, 1205)
+script = ExtResource("2_0xm2m")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Obstacle" unique_id=725476183]
+shape = SubResource("RectangleShape2D_5yir0")
+
+[node name="Polygon2D" type="Polygon2D" parent="Obstacle" unique_id=526345863]
+color = Color(0.9369181, 0.2987888, 0.10918968, 1)
+polygon = PackedVector2Array(-25, -75, 25, -75, 25, 75, -25, 75)
+
+[node name="Obstacle2" type="Area2D" parent="." unique_id=1515890787]
+position = Vector2(850, 1205)
+script = ExtResource("2_0xm2m")
+respawn_x = 1100.0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Obstacle2" unique_id=433745386]
+shape = SubResource("RectangleShape2D_h2yge")
+
+[node name="Polygon2D" type="Polygon2D" parent="Obstacle2" unique_id=699633342]
+color = Color(0.9369181, 0.2987888, 0.10918968, 1)
+polygon = PackedVector2Array(-25, -75, 25, -75, 25, 75, -25, 75)
+
+[node name="OverheadObstacle" type="Area2D" parent="." unique_id=980610999]
+position = Vector2(850, 75)
+script = SubResource("GDScript_h2yge")
+respawn_x = 1100.0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="OverheadObstacle" unique_id=1420561830]
+shape = SubResource("RectangleShape2D_h2yge")
+
+[node name="Polygon2D" type="Polygon2D" parent="OverheadObstacle" unique_id=1016120335]
+color = Color(0.9369181, 0.2987888, 0.10918968, 1)
+polygon = PackedVector2Array(-25, -75, 25, -75, 25, 75, -25, 75)
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=2044059351]
+
+[node name="Control" type="Control" parent="CanvasLayer" unique_id=1982230319]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ColorRect" type="ColorRect" parent="CanvasLayer/Control" unique_id=1322077831]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.09019608, 0.1254902, 0.2, 0.47058824)
+
+[node name="Button" type="Button" parent="CanvasLayer/Control/ColorRect" unique_id=266097865]
+layout_mode = 0
+offset_left = 288.0
+offset_top = 310.0
+offset_right = 433.0
+offset_bottom = 355.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("StyleBoxFlat_5yir0")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_x1ka8")
+theme_override_styles/hover = SubResource("StyleBoxFlat_vit7h")
+text = "RESTART"
+
+[node name="Label" type="Label" parent="CanvasLayer/Control" unique_id=339351519]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 2.0
+offset_top = -364.0
+offset_right = 2.0
+offset_bottom = -364.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.99215686, 0.9019608, 0.5411765, 1)
+theme_override_font_sizes/font_size = 48
+text = "GAME OVER"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ScoreLabel" type="Label" parent="CanvasLayer" unique_id=978139088]
+offset_right = 40.0
+offset_bottom = 23.0
+theme_override_font_sizes/font_size = 28
+text = "0"
+
+[node name="DistanceLabel" type="Label" parent="CanvasLayer" unique_id=995560847]
+offset_left = 274.0
+offset_right = 324.0
+offset_bottom = 39.0
+theme_override_font_sizes/font_size = 28
+text = "0 m"
+
+[connection signal="body_entered" from="Obstacle" to="Player" method="_on_obstacle_body_entered"]
+[connection signal="body_entered" from="Obstacle2" to="Player" method="_on_obstacle_body_entered"]
+[connection signal="body_entered" from="OverheadObstacle" to="Player" method="_on_obstacle_body_entered"]
+[connection signal="pressed" from="CanvasLayer/Control/ColorRect/Button" to="Player" method="_on_button_pressed"]
