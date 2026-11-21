@@ -62,6 +62,7 @@ var music_player: AudioStreamPlayer
 var sfx_point: AudioStreamPlayer
 var sfx_hit: AudioStreamPlayer
 var sfx_click: AudioStreamPlayer
+var sfx_logo: AudioStreamPlayer
 
 @onready var ui = $CanvasLayer
 @onready var player = $Player
@@ -82,9 +83,11 @@ func _ready() -> void:
 	ui.resume_pressed.connect(_on_resume_pressed)
 	ui.sound_pressed.connect(toggle_sound)
 	ui.escape_pressed.connect(_on_escape)
+	ui.splash_started.connect(_on_splash_started)
+	ui.splash_finished.connect(_on_splash_finished)
 
 	go_to_menu()
-	_play_music()
+	ui.show_splash()   # logo animation first; the start screen waits underneath
 
 
 func _notification(what: int) -> void:
@@ -292,6 +295,16 @@ func _on_resume_pressed() -> void:
 	resume_game()
 
 
+func _on_splash_started() -> void:
+	_play(sfx_logo)
+
+
+func _on_splash_finished() -> void:
+	if sfx_logo != null and sfx_logo.playing:
+		sfx_logo.stop()
+	_play_music()
+
+
 func _on_escape() -> void:
 	if state == State.PLAYING:
 		pause_game()
@@ -335,6 +348,7 @@ func _setup_audio() -> void:
 	sfx_point = _make_player("res://audio/point.wav", -8.0, true)
 	sfx_hit = _make_player("res://audio/hit.wav", -4.0, true)
 	sfx_click = _make_player("res://audio/click.wav", -6.0, true)
+	sfx_logo = _make_player("res://audio/logo.wav", -6.0, true)
 	AudioServer.set_bus_mute(0, not sound_on)
 
 

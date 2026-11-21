@@ -11,6 +11,17 @@ signal pause_pressed
 signal resume_pressed
 signal sound_pressed
 signal escape_pressed
+signal splash_started
+signal splash_finished
+
+# Logo splash screen: layout and timing (seconds)
+const LOGO_SIZE := 652.0
+const LOGO_POS := Vector2(34.0, 274.0)
+const T_LETTERS := 0.3     # "SG" pops in
+const T_NAME := 1.1        # "Symphor Games" slides up
+const T_GEM := 2.0         # the crystal appears behind the letters
+const T_FADE := 3.9        # everything fades out
+const T_END := 4.4
 
 const TITLE_COLOR := Color(0.99, 0.90, 0.54)
 const TEXT_COLOR := Color(1.0, 1.0, 1.0)
@@ -27,6 +38,11 @@ var pause_sound_button: Button
 var over_score_label: Label
 var over_distance_label: Label
 var over_best_label: Label
+
+var splash_root: Control
+var splash_tween: Tween
+var splash_active := false
+var splash_skipping := false
 
 @onready var score_label: Label = $ScoreLabel
 @onready var distance_label: Label = $DistanceLabel
@@ -45,6 +61,120 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		escape_pressed.emit()
+
+
+# ---------------------------------------------------------------------------
+# Logo splash screen: SG letters, then the name, then the crystal.
+# Tap anywhere to skip. If the logo files are missing it is simply skipped.
+# ---------------------------------------------------------------------------
+func show_splash() -> void:
+	var gem_tex := _load_texture("res://logo/logo_gem.png")
+	var name_tex := _load_texture("res://logo/logo_name.png")
+	var letters_tex := _load_texture("res://logo/logo_letters.png")
+	if gem_tex == null or name_tex == null or letters_tex == null:
+		splash_finished.emit()
+		return
+
+	splash_active = true
+	splash_skipping = false
+
+	splash_root = Control.new()
+	add_child(splash_root)
+	splash_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+	var black := ColorRect.new()
+	black.color = Color.BLACK
+	splash_root.add_child(black)
+	black.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	black.gui_input.connect(_on_splash_input)
+
+	# Drawing order: crystal at the back, then the name, then the letters on top.
+	var gem := _make_logo_layer(gem_tex, Vector2(0.5, 0.45))
+	var name_rect := _make_logo_layer(name_tex, Vector2(0.5, 0.82))
+	var letters := _make_logo_layer(letters_tex, Vector2(0.5, 0.47))
+	splash_root.add_child(gem)
+	splash_root.add_child(name_rect)
+	splash_root.add_child(letters)
+
+	var flash := ColorRect.new()
+	flash.color = Color(0.45, 0.6, 1.0, 1.0)
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flash.modulate = Color(1, 1, 1, 0)
+	splash_root.add_child(flash)
+	flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+	var base_y := LOGO_POS.y
+	letters.scale = Vector2(0.5, 0.5)
+	name_rect.position.y = base_y + 40.0
+	gem.scale = Vector2(0.8, 0.8)
+
+	splash_tween = create_tween().set_parallel(true)
+	# 1. SG letters pop in
+	splash_tween.tween_property(letters, "modulate:a", 1.0, 0.45).set_delay(T_LETTERS)
+	splash_tween.tween_property(letters, "scale", Vector2.ONE, 0.6).set_delay(T_LETTERS) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	# 2. The name slides up and fades in
+	splash_tween.tween_property(name_rect, "modulate:a", 1.0, 0.5).set_delay(T_NAME)
+	splash_tween.tween_property(name_rect, "position:y", base_y, 0.6).set_delay(T_NAME) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	# 3. The crystal appears behind the letters, with a soft flash
+	splash_tween.tween_property(gem, "modulate:a", 1.0, 0.55).set_delay(T_GEM)
+	splash_tween.tween_property(gem, "scale", Vector2.ONE, 0.8).set_delay(T_GEM) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	splash_tween.tween_property(flash, "modulate:a", 0.2, 0.12).set_delay(T_GEM)
+	splash_tween.tween_property(flash, "modulate:a", 0.0, 0.45).set_delay(T_GEM + 0.12)
+	# 4. Fade out and hand over to the start screen
+	splash_tween.tween_property(splash_root, "modulate:a", 0.0, T_END - T_FADE).set_delay(T_FADE)
+	splash_tween.tween_callback(_finish_splash).set_delay(T_END)
+
+	splash_started.emit()
+
+
+func _make_logo_layer(tex: Texture2D, pivot_fraction: Vector2) -> TextureRect:
+	var rect := TextureRect.new()
+	rect.texture = tex
+	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	rect.stretch_mode = TextureRect.STRETCH_SCALE
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rect.size = Vector2(LOGO_SIZE, LOGO_SIZE)
+	rect.position = LOGO_POS
+	rect.pivot_offset = rect.size * pivot_fraction
+	rect.modulate = Color(1, 1, 1, 0)
+	return rect
+
+
+func _load_texture(path: String) -> Texture2D:
+	if ResourceLoader.exists(path):
+		return load(path) as Texture2D
+	return null
+
+
+func _on_splash_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed:
+		_skip_splash()
+	elif event is InputEventScreenTouch and event.pressed:
+		_skip_splash()
+
+
+func _skip_splash() -> void:
+	if not splash_active or splash_skipping:
+		return
+	splash_skipping = true
+	if splash_tween != null:
+		splash_tween.kill()
+	var fade := create_tween()
+	fade.tween_property(splash_root, "modulate:a", 0.0, 0.25)
+	fade.tween_callback(_finish_splash)
+
+
+func _finish_splash() -> void:
+	if not splash_active:
+		return
+	splash_active = false
+	if splash_tween != null:
+		splash_tween.kill()
+	splash_root.queue_free()
+	splash_finished.emit()
 
 
 # ---------------------------------------------------------------------------
